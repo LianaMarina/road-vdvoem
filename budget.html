@@ -127,6 +127,7 @@ header{height:auto;min-height:72px} nav{flex-wrap:wrap} nav a:first-child{border
  <div class="budget-wrap">
   <div class="budget-toolbar"><label class="budget-field">Общий бюджет всей поездки, ₽<input id="budget-total" type="number" min="0" step="1" placeholder="Например, 120000" style="width:215px"></label><div class="budget-controls"><button type="button" class="budget-btn secondary" id="budget-export">↓ Скачать расходы JSON</button><label class="budget-btn secondary" style="cursor:pointer">↑ Восстановить JSON<input type="file" id="budget-import" accept="application/json,.json" hidden></label></div></div>
   <div class="family-sync"><div><strong>☁ Наш семейный бюджет</strong><p class="budget-muted" id="family-status">Локальный режим · для обмена расходами подключите облако.</p></div><div class="family-sync-actions"><label class="budget-field">Email для входа<input type="email" id="family-email" placeholder="you@example.com" autocomplete="email"></label><button class="budget-btn secondary" type="button" id="family-login">Получить письмо</button><button class="budget-btn secondary" type="button" id="family-join">Войти в поездку</button><button class="budget-btn secondary" type="button" id="family-logout" hidden>Выйти</button><button class="budget-btn secondary" type="button" id="family-reload">↻ Обновить</button></div><p class="budget-muted">Войти в одну поездку нужно с обоих телефонов, используя отдельные email и общий код приглашения. Код в адрес сайта не добавляйте. Содержимое бюджета доступно только вошедшим участникам. Дневник и фотографии пока локальные.</p></div>
+  <section class="panel" id="turkey-cost-choices" style="margin:22px 0"><span class="eyebrow">Расчёты Ильи · Турция</span><h2>Две дороги к Стамбулу</h2><p>Это <strong>плановые</strong> расходы только на топливо и платные дороги, по записям Ильи. Два варианта нельзя складывать вместе. Ночлег и еда считаются отдельно.</p><div class="columns"><div class="detail-card"><h3>Через Трабзон</h3><p>Хопа → Трабзон: 170 км / 2 ч 15 мин · 14 л · 1 800 ₽ бензин.</p><p>Трабзон → Стамбул: 1 060 км / 13 ч · 85 л · 10 800 ₽ бензин + около 2 000 ₽ платные дороги.</p><b>Всего: 14 600 ₽</b><p><button type="button" class="budget-btn" data-ilia-option="trabzon">Добавить этот вариант в план</button></p></div><div class="detail-card"><h3>Через Самсун</h3><p>Хопа → Самсун: 500 км / 7 ч · 40 л · 5 100 ₽ бензин.</p><p>Самсун → Стамбул: 730 км / 9 ч · 59 л · 7 500 ₽ бензин + около 2 000 ₽ платные дороги.</p><b>Всего: 14 600 ₽</b><p><button type="button" class="budget-btn" data-ilia-option="samsun">Добавить этот вариант в план</button></p></div></div><p class="budget-hint" id="ilia-option-status">Оба маршрута — альтернативные расчёты. Пока ничего дополнительно не включено в общий план.</p></section>
   <div class="budget-summary"><div class="budget-stat"><small>Запланировано по статьям</small><strong id="budget-planned">—</strong></div><div class="budget-stat"><small>Потрачено всего</small><strong id="budget-spent">—</strong></div><div class="budget-stat" id="budget-left-card"><small>Осталось из общего бюджета</small><strong id="budget-left">—</strong></div><div class="budget-stat"><small>Разница: план − факт</small><strong id="budget-diff">—</strong></div></div>
   <div class="budget-bar" aria-hidden="true"><div id="budget-progress" class="budget-bar-fill"></div></div><div class="budget-muted" id="budget-progress-label">Укажите общий бюджет, чтобы видеть оставшуюся сумму.</div>
   <div class="budget-toolbar"><label class="budget-field">Посмотреть расходы по маршруту / городу<select id="budget-scope" style="min-width:260px"></select></label><div class="budget-muted" id="budget-scope-summary"></div></div>
@@ -311,7 +312,7 @@ const scopes=[
  ['leg_moscow_rostov','🚗 Москва → Ростов-на-Дону'],['city_rostov','🏙 Ростов-на-Дону'],
  ['leg_rostov_vlad','🚗 Ростов-на-Дону → Владикавказ'],['city_vlad','🏙 Владикавказ'],
  ['leg_vlad_tbilisi','🚗 Владикавказ → транзит через Грузию'],['city_tbilisi','🚗 Грузия (транзит, без ночёвки)'],
- ['leg_tbilisi_istanbul','🚗 Грузия → Стамбул'],['city_hopa','🏙 Хопа · ночёвка по ситуации'],['leg_hopa_trabzon','🚗 Хопа → Трабзон'],['city_trabzon','🏙 Трабзон'],['leg_trabzon_samsun','🚗 Трабзон → Самсун'],['city_samsun','🏙 Самсун'],['city_istanbul','🏙 Стамбул'],
+ ['leg_tbilisi_istanbul','🚗 Трабзон → Стамбул'],['city_hopa','🏙 Хопа · ночёвка по ситуации'],['leg_hopa_trabzon','🚗 Хопа → Трабзон'],['leg_hopa_samsun','🚗 Хопа → Самсун'],['leg_samsun_istanbul','🚗 Самсун → Стамбул'],['city_trabzon','🏙 Трабзон'],['leg_trabzon_samsun','🚗 Трабзон → Самсун'],['city_samsun','🏙 Самсун'],['city_istanbul','🏙 Стамбул'],
  ['border_georgia','🛂 Граница Россия → Грузия'],['border_turkey','🛂 Граница Грузия → Турция'],
  ['turkey_alternatives','🇹🇷 Другие остановки по Турции'],['return_road','↩ Обратная дорога домой']
 ];
@@ -321,7 +322,7 @@ const defaults={
  leg_moscow_rostov:{'Бензин':6250,'Платные дороги':3500},city_rostov:{'Ночлег':4000},
  leg_rostov_vlad:{'Бензин':4000,'Платные дороги':450}
 };
-const stageGroups=[['Россия до Владикавказа',['leg_nn_moscow','city_moscow','leg_moscow_rostov','city_rostov','leg_rostov_vlad','city_vlad']],['Грузия и две границы',['border_georgia','leg_vlad_tbilisi','city_tbilisi','border_turkey']],['Турция → Стамбул',['leg_tbilisi_istanbul','city_hopa','leg_hopa_trabzon','city_trabzon','leg_trabzon_samsun','city_samsun','turkey_alternatives','city_istanbul']],['Обратная дорога',['return_road']]];
+const stageGroups=[['Россия до Владикавказа',['leg_nn_moscow','city_moscow','leg_moscow_rostov','city_rostov','leg_rostov_vlad','city_vlad']],['Грузия и две границы',['border_georgia','leg_vlad_tbilisi','city_tbilisi','border_turkey']],['Турция → Стамбул',['leg_tbilisi_istanbul','city_hopa','leg_hopa_trabzon','leg_hopa_samsun','leg_samsun_istanbul','city_trabzon','leg_trabzon_samsun','city_samsun','turkey_alternatives','city_istanbul']],['Обратная дорога',['return_road']]];
 const fmt=n=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(n)+' ₽';
 const $=id=>document.getElementById(id);
 const safe=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -426,5 +427,28 @@ window.openBudgetForCity=(city)=>{const id='city_'+(city==='vladikavkaz'?'vlad':
 render();
 })();
 </script>
-</body>
+<script>
+(function(){
+ const key='doroga-vdvoem-budget-v1';
+ const choices={
+ trabzon:{'leg_hopa_trabzon':{'Бензин':1800},'leg_tbilisi_istanbul':{'Бензин':10800,'Платные дороги':2000}},
+ samsun:{'leg_hopa_samsun':{'Бензин':5100},'leg_samsun_istanbul':{'Бензин':7500,'Платные дороги':2000}}
+ };
+ const routeIds=['leg_hopa_trabzon','leg_tbilisi_istanbul','leg_hopa_samsun','leg_samsun_istanbul'];
+ document.querySelectorAll('[data-ilia-option]').forEach(button=>button.addEventListener('click',()=>{
+  const option=button.dataset.iliaOption;
+  if(!confirm('Применить план Ильи через '+(option==='trabzon'?'Трабзон':'Самсун')+'? Плановые суммы других альтернативных дорог будут убраны. Фактические расходы не затрагиваются.'))return;
+  let data;try{data=JSON.parse(localStorage.getItem(key))}catch{}
+  if(!data||typeof data!=='object')data={total:null,plans:{'leg_nn_moscow':{'Бензин':2500},'city_moscow':{'Ночлег':5000},'leg_moscow_rostov':{'Бензин':6250,'Платные дороги':3500},'city_rostov':{'Ночлег':4000},'leg_rostov_vlad':{'Бензин':4000,'Платные дороги':450}},expenses:[]};
+  if(!data.plans||typeof data.plans!=='object')data.plans={};
+  routeIds.forEach(id=>{if(data.plans[id])delete data.plans[id]});
+  Object.assign(data.plans,choices[option]);
+  localStorage.setItem(key,JSON.stringify(data));
+  localStorage.setItem('doroga-ilia-turkey-route',option);
+  location.reload();
+ }));
+ const name=localStorage.getItem('doroga-ilia-turkey-route');
+ if(name)document.getElementById('ilia-option-status').textContent='В бюджете выбран вариант через '+(name==='trabzon'?'Трабзон':'Самсун')+'. Реальные траты по-прежнему вводятся отдельно.';
+})();
+</script></body>
 </html>
