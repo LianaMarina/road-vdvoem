@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бюджет — Дорога вдвоём</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://server.arcgisonline.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+:root{--paper:#f7f0e5;--paper2:#fffaf1;--ink:#302a24;--muted:#817568;--rust:#b76c4b;--olive:#72795b;--line:#e5d7c4;--blue:#658ca0}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif}
+header{height:72px;padding:0 clamp(18px,4vw,64px);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e6dac9;background:rgba(255,250,241,.9);gap:20px}
+.brand{font-family:'Playfair Display',serif;font-size:21px;white-space:nowrap}.brand span{color:var(--rust)}nav{display:flex;gap:28px}nav a{color:#75695d;text-decoration:none;font-size:13px}nav a:first-child{color:var(--ink);border-bottom:2px solid var(--rust);padding-bottom:8px}
+.top-right{font-size:12px;color:var(--muted);white-space:nowrap}
+.hero{padding:42px clamp(18px,4vw,64px) 32px;display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center;background:radial-gradient(ellipse at 80% 0%,#e8d3b8 0,transparent 48%),linear-gradient(110deg,#f7f0e5,#f0e2d0)}
+.eyebrow{text-transform:uppercase;letter-spacing:2.6px;color:var(--rust);font-size:10px;font-weight:700}.hero h1{font:600 clamp(36px,4.5vw,62px)/1.05 'Playfair Display',serif;margin:15px 0 15px;letter-spacing:-1.5px}.hero h1 em{color:var(--rust);font-weight:500}.hero p{max-width:490px;line-height:1.7;color:#76685a;font-size:14px}.chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px}.chip{padding:9px 12px;background:#fffaf1bd;border:1px solid #e6d5c0;border-radius:99px;font-size:11px;color:#66584b}
+.hero-art{height:210px;border-radius:16px;position:relative;overflow:hidden;background:linear-gradient(160deg,#b6c0b2,#e7c7a4 52%,#7d8e83);box-shadow:0 15px 30px #745d4220}
+.hero-art:before{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#282b25aa,transparent 65%),url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85') center 48%/cover;opacity:.82}
+.art-note{position:absolute;left:20px;bottom:18px;color:white;font:italic 18px 'Playfair Display',serif;text-shadow:0 1px 8px #0007}.stamp{position:absolute;right:18px;top:16px;border:1px solid #fff9;border-radius:50%;width:70px;height:70px;display:grid;place-items:center;color:#fff;font-size:10px;text-align:center;transform:rotate(9deg);background:#ffffff15}
+main{padding:28px clamp(14px,3vw,48px) 55px;max-width:1600px;margin:auto}.section-head{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-bottom:16px}.section-head h2{font:600 27px 'Playfair Display',serif;margin:0}.section-head p{margin:5px 0 0;font-size:12px;color:var(--muted)}.map-layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:16px}
+.map-shell{height:540px;border-radius:17px;overflow:hidden;border:1px solid #d9c9b4;box-shadow:0 8px 24px #4e382012;position:relative;background:#e8e3d5}
+#map{height:100%;width:100%}.map-label{position:absolute;z-index:500;left:15px;top:15px;background:#fffaf1eF;border:1px solid #e4d6c3;border-radius:12px;padding:12px 14px;box-shadow:0 4px 14px #45301a12;pointer-events:none}.map-label strong{display:block;font:600 16px 'Playfair Display',serif}.map-label span{font-size:10px;color:var(--muted)}
+.map-tools{position:absolute;z-index:500;right:14px;top:14px;display:flex;flex-direction:column;gap:7px}.tool{border:1px solid #dfd0bd;background:#fffaf1ed;border-radius:10px;padding:10px 12px;font:500 11px 'DM Sans';cursor:pointer;box-shadow:0 3px 10px #45301a12;color:#55493e}.tool.active{background:#e7e8da;border-color:#a7ae8a;color:#485139}.tool:hover{transform:translateY(-1px)}
+.sidebar{background:var(--paper2);border:1px solid var(--line);border-radius:17px;padding:19px 17px;display:flex;flex-direction:column;min-height:540px}.side-title{font:600 20px 'Playfair Display',serif;margin-bottom:5px}.side-sub{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:15px}.route-list{display:flex;flex-direction:column;gap:2px}.route-stop{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;padding:10px 7px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:.18s}.route-stop:hover,.route-stop.selected{background:#f3e9d9;border-color:#e5d3bb}.num{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#5c5145;color:white;font-size:11px;font-weight:700}.stop-name{font-size:12px;font-weight:600}.stop-desc{font-size:10px;color:#9a8876;margin-top:3px}.stop-km{font-size:10px;color:#8b7d6c;white-space:nowrap}.legend{border-top:1px solid var(--line);margin-top:auto;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;color:#786b5e;font-size:10px}.legend span{display:flex;align-items:center;gap:7px}.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--rust)}.legend .gas{background:#7d8b5d}.legend .bed{background:#8c7ca4}
+.cities-head{display:flex;align-items:center;justify-content:space-between;margin:29px 0 14px}.cities-head h2{font:600 26px 'Playfair Display',serif;margin:0}.cities-head span{font-size:11px;color:var(--muted)}.city-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.city-card{background:var(--paper2);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s}.city-card:hover{transform:translateY(-3px);box-shadow:0 10px 20px #59462a12}.city-card.active{outline:2px solid var(--rust)}.city-photo{height:112px;position:relative;background:#d8c6ad}.city-photo img{width:100%;height:100%;object-fit:cover;display:block}.city-no{position:absolute;top:9px;left:9px;background:#fff8ed;color:#46372b;border-radius:50%;width:25px;height:25px;display:grid;place-items:center;font-size:11px;font-weight:700}.city-info{padding:12px}.city-info h3{font:600 16px 'Playfair Display',serif;margin:0 0 5px}.city-info p{font-size:10px;color:var(--muted);line-height:1.5;margin:0;min-height:30px}.city-link{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:10px;color:var(--rust);font-weight:700}
+footer{padding:24px 20px;text-align:center;background:#e9ddcb;color:#7b6c5d;font-size:11px}footer strong{font:italic 18px 'Playfair Display',serif;color:#665142}
+.leaflet-popup-content-wrapper{background:#fffaf1;color:var(--ink);border-radius:12px;font-family:'DM Sans',sans-serif}.leaflet-popup-content{margin:13px 15px;line-height:1.5}.popup-title{font:600 17px 'Playfair Display',serif}.popup-link{border:0;border-radius:7px;padding:7px 10px;background:#e9d6c1;color:#554030;cursor:pointer;margin-top:5px}
+@media(max-width:1050px){.city-grid{grid-template-columns:repeat(3,1fr)}.hero{grid-template-columns:1fr 0.7fr}.map-layout{grid-template-columns:minmax(0,1fr) 250px}}
+@media(max-width:720px){header{height:auto;min-height:65px;flex-wrap:wrap;padding-top:14px;padding-bottom:12px}nav{order:3;width:100%;justify-content:space-between;gap:8px}nav a{font-size:11px}.top-right{display:none}.hero{grid-template-columns:1fr;padding-top:32px}.hero-art{height:150px}.map-layout{grid-template-columns:1fr}.map-shell{height:430px}.sidebar{min-height:unset}.route-list{display:grid;grid-template-columns:1fr 1fr}.legend{margin-top:15px}.city-grid{grid-template-columns:repeat(2,1fr)}.city-photo{height:100px}.section-head h2,.cities-head h2{font-size:23px}}
+
+/* Second edition: practical chapters and memory journal */
+#map-status{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);width:min(90%,420px);z-index:800;background:#fffaf1;border:1px solid #b76c4b;border-radius:10px;padding:12px;color:#70402f;font-size:12px;box-shadow:0 8px 22px #0002}
+#map-status[hidden]{display:none}.leaflet-container{background:#e6e4d9}
+.journal-intro{background:#fffaf1;border:1px solid var(--line);border-radius:16px;padding:23px;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.journal-heading{font:600 21px 'Playfair Display',serif}.journal-intro p{font-size:12px;line-height:1.7;color:var(--muted);max-width:640px}.journal-actions{display:flex;flex-wrap:wrap;gap:8px;align-content:center}.journal-btn{border:1px solid #b76c4b;background:#b76c4b;color:#fffaf1;padding:11px 14px;border-radius:9px;font:600 12px 'DM Sans',sans-serif;cursor:pointer}.journal-btn.secondary{background:#fffaf1;color:#8b563e;border-color:#ddc4aa}.journal-btn:hover{filter:brightness(.94)}.file-label{display:inline-flex;align-items:center}.journal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:16px}.journal-entry{border-radius:14px;overflow:hidden;background:#fffaf1;border:1px solid var(--line);cursor:pointer;box-shadow:0 4px 14px #4a32200d}.journal-entry img{height:180px;width:100%;object-fit:cover}.journal-entry-body{padding:15px}.journal-entry h3{font:600 20px 'Playfair Display',serif;margin:7px 0}.journal-entry p{color:#817568;font-size:12px;line-height:1.6}.journal-empty{border:1px dashed #cbb79e;border-radius:15px;padding:30px;color:#867666;text-align:center;grid-column:1/-1;background:#fffaf180}.journal-date{font-size:10px;color:#b76c4b;text-transform:uppercase;letter-spacing:1px}
+.chapter-overlay{position:fixed;inset:0;z-index:2000;background:#211910a8;display:grid;place-items:center;padding:20px;overflow-y:auto}.chapter-overlay[hidden]{display:none}.chapter-modal{background:#fffaf1;width:min(850px,100%);max-height:90vh;overflow:auto;border-radius:20px;box-shadow:0 25px 80px #120e0b55;position:relative}.chapter-cover{height:220px;background-size:cover;background-position:center;position:relative}.chapter-cover:after{content:'';position:absolute;inset:0;background:linear-gradient(transparent,#24190d99)}.chapter-cover h2{position:absolute;z-index:1;bottom:16px;left:25px;color:white;font:600 36px 'Playfair Display',serif;margin:0}.chapter-close{position:absolute;z-index:2;right:15px;top:15px;background:#fffaf1;border:0;border-radius:99px;width:36px;height:36px;cursor:pointer;font-size:21px}.chapter-content{padding:25px 30px 30px}.chapter-content h3{font:600 18px 'Playfair Display',serif;margin:22px 0 8px}.chapter-content p,.chapter-content li{font-size:13px;line-height:1.7;color:#75695d}.chapter-content ul{padding-left:20px}.chapter-note{background:#f2e8d9;padding:13px 17px;border-radius:10px;border-left:3px solid #b76c4b}.chapter-two{display:grid;grid-template-columns:1fr 1fr;gap:20px}.chapter-hint{font-size:11px;color:#897c6d}.chapter-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap}.entry-modal{width:min(640px,100%)}.entry-form{padding:30px;display:grid;gap:12px}.entry-form h2{font:600 27px 'Playfair Display',serif;margin:0 0 8px}.entry-form label{display:grid;gap:6px;font-size:12px;color:#685744;font-weight:600}.entry-form input,.entry-form textarea,.entry-form select{width:100%;border:1px solid #dcccba;background:white;border-radius:8px;padding:11px;color:#44362d;font:13px 'DM Sans',sans-serif}.entry-form textarea{min-height:135px;resize:vertical}.entry-tools{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.entry-preview{max-width:100%;max-height:160px;object-fit:cover;border-radius:10px}.fineprint{font-size:11px;color:#817568;line-height:1.6}.delete-btn{border:0;color:#a34636;background:transparent;cursor:pointer;text-decoration:underline}.entry-form .journal-btn{width:auto}
+@media(max-width:720px){.journal-grid{grid-template-columns:1fr 1fr}.chapter-two{grid-template-columns:1fr}.chapter-content{padding:20px}.chapter-cover{height:150px}.chapter-cover h2{font-size:28px}.journal-entry img{height:120px}}@media(max-width:460px){.journal-grid{grid-template-columns:1fr}.map-tools{top:80px}.map-shell{height:490px}}
+
+.plan-section{margin-top:32px}.plan-section .section-head{align-items:center}.plan-totals{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#e6d6c3;border:1px solid #e6d6c3;border-radius:14px;overflow:hidden;margin:18px 0}.plan-totals>div{background:#fffaf1;padding:18px 14px}.plan-totals span{display:block;color:#91806d;font-size:10px;margin-bottom:9px}.plan-totals strong{font:600 20px 'Playfair Display',serif;color:#634d3d}.plan-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.plan-card{background:#fffaf1;border:1px solid #e1d1bc;padding:23px 21px;border-radius:16px;box-shadow:0 8px 24px #5641260b;display:flex;flex-direction:column}.plan-day{color:#af694c;text-transform:uppercase;letter-spacing:2px;font-size:10px;font-weight:700}.plan-card h3{font:600 23px/1.25 'Playfair Display',serif;margin:13px 0 6px}.plan-card h3 span{color:#b76c4b}.plan-highway{color:#938472;font-size:12px;margin:0 0 19px}.plan-facts{display:flex;gap:8px;flex-wrap:wrap}.plan-facts span{border:1px solid #e7dac8;background:#f7f0e6;border-radius:7px;padding:8px 9px;font-size:11px;color:#665746}.plan-sleep{margin-top:auto;padding:22px 0 14px;color:#645747;font-size:12px;line-height:1.7}.plan-open{background:none;border:0;border-top:1px solid #e3d5c3;text-align:left;color:#a86448;font-weight:700;font-size:12px;padding:13px 0 0;cursor:pointer}.plan-disclaimer{font-size:11px;line-height:1.8;color:#89796a;margin-top:17px}@media(max-width:950px){.plan-totals{grid-template-columns:repeat(3,1fr)}.plan-cards{grid-template-columns:1fr 1fr}}@media(max-width:650px){.plan-cards{grid-template-columns:1fr}.plan-totals{grid-template-columns:repeat(2,1fr)}.plan-card{padding:19px}.plan-section .section-head{flex-wrap:wrap}}
+
+/* Budget ledger: paper-envelope styling */
+.budget-section{margin:38px 0 15px}.budget-wrap{background:#fffaf1;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 7px 28px #5641260b}.budget-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:17px 0}.budget-stat{background:#f6ecdf;border:1px solid #ead9c5;padding:16px;border-radius:13px}.budget-stat small{display:block;font-size:11px;color:#847363;margin-bottom:8px}.budget-stat strong{font:600 clamp(18px,2.4vw,27px) 'Playfair Display',serif}.budget-stat.negative strong{color:#a5483a}.budget-muted{font-size:11px;color:#8d7b68;line-height:1.6}.budget-bar{height:12px;border-radius:30px;background:#e7d8c6;overflow:hidden;margin:14px 0 8px}.budget-bar-fill{background:#8c9976;height:100%;width:0;transition:width .2s}.budget-bar-fill.over{background:#b76c4b}.budget-toolbar{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin:15px 0}.budget-field{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#756555}.budget-field input,.budget-field select,.budget-field textarea{font:500 13px 'DM Sans',sans-serif;background:#fffdf9;color:#342b23;border:1px solid #dac8b2;border-radius:9px;padding:10px;min-width:0}.budget-field input:focus,.budget-field select:focus{outline:2px solid #caa083}.budget-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:end}.budget-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:15px}.budget-pane{border:1px solid #e6d7c5;border-radius:14px;padding:17px;min-width:0}.budget-pane h3{font:600 20px 'Playfair Display',serif;margin:0 0 10px}.budget-line{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:9px 0;border-bottom:1px dashed #e6d7c5;font-size:12px}.budget-line:last-child{border:0}.budget-line input{max-width:115px;width:100%;background:#fff;border:1px solid #dfcbb5;border-radius:8px;padding:7px;text-align:right;font-size:12px}.budget-line button{border:0;background:transparent;color:#a75b49;cursor:pointer}.budget-list{max-height:340px;overflow-y:auto}.budget-empty{font-size:12px;color:#927c67;padding:12px 0}.budget-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.budget-btn{font:600 12px 'DM Sans',sans-serif;border:1px solid #bf8b70;background:#b76c4b;color:white;border-radius:9px;padding:10px 13px;cursor:pointer}.budget-btn.secondary{background:#fffaf1;color:#9c6049}.budget-form{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.2fr;gap:9px;align-items:end}.budget-form .budget-field input,.budget-form .budget-field select{width:100%}.budget-form button{height:38px}.budget-breakdown{margin-top:17px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.budget-mini{padding:12px;background:#f8efe4;border:1px solid #ead9c5;border-radius:10px;cursor:pointer;text-align:left;color:#493a30}.budget-mini b{display:block;font:600 13px 'DM Sans',sans-serif;margin-bottom:6px}.budget-mini span{font-size:11px;color:#806e5e;line-height:1.6}.budget-hint{font-size:11px;color:#877664;line-height:1.6;margin-top:12px}@media(max-width:850px){.budget-summary{grid-template-columns:repeat(2,1fr)}.budget-form{grid-template-columns:1fr 1fr}.budget-breakdown{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.budget-wrap{padding:15px}.budget-split{grid-template-columns:1fr}.budget-breakdown{grid-template-columns:1fr}.budget-form{grid-template-columns:1fr 1fr}.budget-form .budget-field:last-of-type{grid-column:1/-1}.budget-form button{grid-column:1/-1}}
+.family-sync{background:#f3e5d6;border:1px solid #e1c9b1;border-radius:13px;padding:17px;margin:14px 0;display:grid;gap:10px}.family-sync strong{font:600 18px 'Playfair Display',serif}.family-sync-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.family-sync-actions input{width:min(260px,75vw)}
+
+/* Chapters of the road */
+.journey-stages{margin:33px 0}.stage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.stage-card{border:1px solid var(--line);background:var(--paper2);padding:22px;border-radius:17px;box-shadow:0 9px 20px #7053310c;display:flex;flex-direction:column}.stage-index{letter-spacing:2px;text-transform:uppercase;color:var(--rust);font-size:10px;font-weight:700}.stage-card h3{font:600 24px/1.24 'Playfair Display',serif;margin:12px 0 8px}.stage-card p{font-size:12px;line-height:1.75;color:#776657}.stage-details{margin-top:auto;background:#f4eadd;padding:12px;border-radius:10px;font-size:12px;line-height:1.7;color:#685646}.stage-details strong{font:600 20px 'Playfair Display',serif;color:#674b3a}.stage-button{align-self:flex-start;border:0;border-bottom:1px solid #b76c4b;background:transparent;padding:12px 0 4px;cursor:pointer;font-weight:700;color:#ad694e}.return-strip{margin-top:16px;padding:19px 21px;border-radius:15px;border:1px dashed #bea78e;background:#f0e3d2;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.return-strip p{margin:6px 0;font-size:12px;line-height:1.7;color:#746554}.return-strip b{font:600 23px 'Playfair Display',serif;color:#5c6048}.stage-ledger{margin:13px 0 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.stage-ledger div{background:#f6ecdf;border:1px solid #ead9c5;border-radius:11px;padding:12px}.stage-ledger small{display:block;font-size:10px;color:#866f5d;line-height:1.5}.stage-ledger strong{display:block;margin:6px 0;font-size:15px;color:#5d4939}@media(max-width:850px){.stage-grid{grid-template-columns:1fr}.stage-ledger{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.return-strip{grid-template-columns:1fr}.stage-ledger{grid-template-columns:1fr 1fr}}
+
+#route{display:none!important}#journey-stages{display:none!important}#russia-plan{display:none!important}#cities{display:none!important}#memories{display:none!important}
+header{height:auto;min-height:72px} nav{flex-wrap:wrap} nav a:first-child{border:0;padding-bottom:0} .hero{display:none!important} #budget{margin-top:25px} @media(max-width:720px){nav{order:2}}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html" style="text-decoration:none;color:inherit">♡ <span>Дорога</span> вдвоём</a>
+  <nav><a href="index.html">Главная</a><a href="russia.html">Россия</a><a href="georgia.html">Границы</a><a href="turkey.html">Турция</a><a href="budget.html">Бюджет</a><a href="diary.html">Дневник</a></nav>
+  <div class="top-right">Лиана ♥ Илья &nbsp;·&nbsp; наш медовый месяц</div>
+</header>
+<section class="hero" id="about">
+  <div>
+    <div class="eyebrow">Наше маленькое большое приключение</div>
+    <h1>История,<br>которая ведёт <em>к морю.</em></h1>
+    <p>Из Нижнего Новгорода — навстречу новым дорогам, горным перевалам и Стамбулу. Здесь будет жить наш маршрут и всё, что захочется сохранить.</p>
+    <div class="chips"><span class="chip">🚗 Chevrolet Cruze</span><span class="chip">♡ Медовый месяц</span><span class="chip">📍 6 остановок</span></div>
+  </div>
+  <div class="hero-art"><div class="stamp">OUR<br>ROAD<br>STORY ♡</div><div class="art-note">«Самое красивое — впереди»</div></div>
+</section>
+<main><div style="margin:9px 0 20px"><a href="index.html" style="color:#b76c4b;font-size:13px">← Вернуться к выбору маршрута</a></div>
+  <section id="route">
+    <div class="section-head"><div><h2>Наш маршрут</h2><p>Нажимай на метки, чтобы открыть главы · Линия пути схематичная, не для навигации</p></div><span class="chip">Россия → Грузия → Турция</span></div>
+    <div class="map-layout">
+      <div class="map-shell">
+        <div id="map" aria-label="Интерактивная карта маршрута"></div><div id="map-status" hidden>Не удалось получить тайлы карты. Проверьте интернет или доступность картографического сервиса. Метки и маршрут остаются доступны.</div>
+        <div class="map-label"><strong>Дорога вдвоём ♡</strong><span>От дома — к Босфору</span></div>
+        <div class="map-tools">
+          <button class="tool active" id="toggle-cities">📍 Города</button>
+          <button class="tool active" id="toggle-stays">⌂ Ночёвки</button>
+          <button class="tool active" id="toggle-fuel">⛽ Заправки</button>
+          <button class="tool" id="fit-route">↗ Весь маршрут</button>
+        </div>
+      </div>
+      <aside class="sidebar">
+        <div class="side-title">По пути к морю</div>
+        <div class="side-sub">Каждый город — отдельная глава нашей истории. Нажми на остановку, чтобы увидеть детали.</div>
+        <div class="route-list" id="route-list"></div>
+        <div class="legend"><span><i></i> Город</span><span><i class="gas"></i> Заправка</span><span><i class="bed"></i> Ночёвка</span><span>〰 Маршрут</span></div>
+      </aside>
+    </div>
+  </section>
+
+
+  <section id="journey-stages" class="journey-stages">
+    <div class="section-head"><div><div class="eyebrow">Наш путь по главам</div><h2>Три больших отрезка дороги ♡</h2><p>От родного города до Босфора — с отдельным планом и бюджетом для каждого этапа.</p></div></div>
+    <div class="stage-grid">
+      <article class="stage-card"><span class="stage-index">Глава I · Россия</span><h3>До Владикавказа</h3><p>Нижний Новгород → Москва → Ростов-на-Дону / Аксай → Владикавказ. В Москве — прогулка и квартира у метро на юго-востоке. В Ростове — только транзитный ночлег, желательно ближе к М-4.</p><div class="stage-details">Ориентир на весь первый отрезок<br><strong>≈ 26 000 ₽</strong><br>С запасом; жильё можно выбрать дешевле. Ранее записанные статьи дают 25 700 ₽, округляем до 26 000 ₽.</div><button class="stage-button" type="button" onclick="document.getElementById('russia-plan').scrollIntoView({behavior:'smooth'})">Посмотреть три дня →</button></article>
+      <article class="stage-card"><span class="stage-index">Глава II · Две границы</span><h3>Через Грузию в Турцию</h3><p>Владикавказ → Верхний Ларс / Дариали → Грузия → грузино-турецкая граница. Вариант через Тбилиси и Батуми / Сарпи — предварительный, без выбранных ночёвок.</p><div class="stage-details">Пока без фиксированного бюджета.<br>Позже учтём топливо, страховки, еду, ночёвки и возможные задержки на границах.</div><button class="stage-button" type="button" onclick="window.openStageBudget('border')">Бюджет границ →</button></article>
+      <article class="stage-card"><span class="stage-index">Глава III · Турция</span><h3>До Стамбула ♡</h3><p>После Сарпи / Сарпа — гибкий выбор: если граница затянется или Илья устанет, ночуем в Хопе. Если ещё рано и есть силы — Трабзон. После ночёвки в Хопе утром можно выбрать Трабзон или более дальний Самсун.</p><div class="stage-details">План расходов пока открыт.<br>Можно будет отдельно записать дорогу, жильё и впечатления по пути и в Стамбуле.</div><button class="stage-button" type="button" onclick="window.openStageBudget('turkey')">Бюджет Турции →</button></article>
+    </div>
+    <section class="turkey-choice" aria-label="Выбор ночёвки после границы" style="background:#fffaf1;border:1px solid #e5d7c4;border-radius:17px;padding:20px;margin:18px 0 23px">
+    <div class="eyebrow">После грузино-турецкой границы · по самочувствию</div>
+    <h3 style="font:600 23px 'Playfair Display',serif;margin:9px 0">Где остановимся на ночь? ♡</h3>
+    <p style="font-size:13px;line-height:1.7;color:#817568">Ничего не бронируем жёстко заранее: время на КПП непредсказуемо. Главное — отдых, а не дополнительные километры ночью.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin-top:13px">
+      <button class="turkey-choice-btn" data-choice="hopa" type="button" style="text-align:left;border:1px solid #e5d7c4;border-radius:12px;background:#f7f0e5;padding:15px;cursor:pointer;color:#302a24"><b>🌙 Хопа</b><span style="display:block;font-size:12px;line-height:1.6;margin-top:7px">Поздний въезд / усталость. Около 20 км после границы. Ночуем и едем утром.</span></button>
+      <button class="turkey-choice-btn" data-choice="trabzon" type="button" style="text-align:left;border:1px solid #e5d7c4;border-radius:12px;background:#f7f0e5;padding:15px;cursor:pointer;color:#302a24"><b>🌅 Трабзон</b><span style="display:block;font-size:12px;line-height:1.6;margin-top:7px">Если КПП пройден рано, комфортно и хватает сил: около 188 км от Сарпа.</span></button>
+      <button class="turkey-choice-btn" data-choice="undecided" type="button" style="text-align:left;border:1px solid #e5d7c4;border-radius:12px;background:#f7f0e5;padding:15px;cursor:pointer;color:#302a24"><b>♡ Решим по дороге</b><span style="display:block;font-size:12px;line-height:1.6;margin-top:7px">Без фиксированного города ночёвки. Оба варианта остаются на карте.</span></button>
+    </div>
+    <p id="turkey-choice-status" style="font-size:12px;color:#817568;margin:12px 0 0" aria-live="polite"></p>
+    <p style="font-size:12px;color:#817568;margin-top:8px">Если ночь проведём в Хопе: утром до Трабзона ≈ 168 км / 2,5 часа, до Самсуна ≈ 492 км / 7 часов чистой езды. Это ориентиры без остановок и пробок.</p>
+  </section>
+  <div class="return-strip"><div><span class="stage-index">Обратная дорога · экономный вариант</span><h3 style="font:600 21px 'Playfair Display',serif;margin:6px 0">Стамбул → Нижний Новгород</h3><p>Возвращение домой без экскурсионных крюков, без запланированных платных дорог; остановки — только на ночлег. Точный маршрут и сроки определим отдельно.</p><p>Если сравнивать с первым российским отрезком за ≈ 26 000 ₽, желаемая экономия ≈ 10 000 ₽ означает условный ориентир <b>≈ 16 000 ₽</b> на сопоставимую российскую часть обратной дороги. Это гипотеза, не расчёт всего возвращения из Стамбула.</p></div><div><b>− ≈ 10 000 ₽</b><div style="font-size:11px;color:#836d5d">целевая экономия</div><button class="stage-button" type="button" onclick="window.openStageBudget('return')">Расходы обратно →</button></div></div>
+  </section>
+  <section id="russia-plan" class="plan-section">
+    <div class="section-head"><div><div class="eyebrow">Из нашего бумажного блокнота</div><h2>Три дня по России ♡</h2><p>Ваши первоначальные расчёты — расстояния, часы и расходы ориентировочные.</p></div><span class="chip">М-7 · М-4 «Дон» · E50</span></div>
+    <div class="plan-totals"><div><span>Расстояние по плану</span><strong>≈ 2 250 км</strong></div><div><span>Вождение без отдыха</span><strong>≈ 29 ч</strong></div><div><span>Бензин</span><strong>≈ 12 750 ₽</strong></div><div><span>Платные дороги</span><strong>≈ 3 950 ₽</strong></div><div><span>Ночёвки в Москве и Ростове</span><strong>до ≈ 9 000 ₽</strong></div></div>
+    <div class="plan-cards">
+      <article class="plan-card"><span class="plan-day">01 / Первый день</span><h3>Нижний Новгород <span>→</span> Москва</h3><p class="plan-highway">М-7 · первая глава пути</p><div class="plan-facts"><span>↗ ≈ 450 км</span><span>◷ ≈ 6 часов</span><span>⛽ ≈ 36 л / 2 500 ₽</span></div><div class="plan-sleep">⌂ Утренний выезд, прогулка в Москве оставшуюся часть дня. Квартира у метро в Жулебино или Котельниках <b>до 5 000 ₽</b>.</div><button class="plan-open" type="button" onclick="selectCity('moscow')">Открыть главу Москвы ↗</button></article>
+      <article class="plan-card"><span class="plan-day">02 / Второй день</span><h3>Москва <span>→</span> Ростов-на-Дону</h3><p class="plan-highway">М-4 «Дон» · длинная дорога на юг</p><div class="plan-facts"><span>↗ ≈ 1 100 км</span><span>◷ ≈ 14 часов</span><span>⛽ ≈ 88 л / 6 250 ₽</span><span>🛣️ Платная дорога ≈ 3 500 ₽</span></div><div class="plan-sleep">⌂ Только ночлег: квартира в Аксае рядом с М‑4 или придорожный отель <b>≈ 4 000 ₽</b>, без прогулок по Ростову.</div><button class="plan-open" type="button" onclick="selectCity('rostov')">Открыть главу Ростова ↗</button></article>
+      <article class="plan-card"><span class="plan-day">03 / Третий день</span><h3>Ростов-на-Дону <span>→</span> Владикавказ</h3><p class="plan-highway">М-4 / E50 · навстречу горам</p><div class="plan-facts"><span>↗ ≈ 700 км</span><span>◷ ≈ 9 часов</span><span>⛽ ≈ 56 л / 4 000 ₽</span><span>🛣️ Платная дорога ≈ 450 ₽</span></div><div class="plan-sleep">⌂ Ночёвка перед Грузией: <b>пока без бюджета</b></div><button class="plan-open" type="button" onclick="selectCity('vladikavkaz')">Открыть главу Владикавказа ↗</button></article>
+    </div>
+    <p class="plan-disclaimer">♡ Итого по России до Владикавказа: около <b>26 000 ₽ с запасом</b> (детальный план: 25 700 ₽) на бензин, платные дороги и две указанные ночёвки. Детальные строки пока не включают питание, парковки и проживание во Владикавказе; резерв 300 ₽ не гарантирует покрытие этих расходов. Цифры перенесены из вашего блокнота, не пересчитаны по актуальным тарифам; 14 часов за рулём потребуют отдельных перерывов на отдых.</p>
+  </section>
+
+<section class="budget-section" id="budget">
+ <div class="section-head"><div><div class="eyebrow">Наши расходы · финансовый дневник</div><h2>Бюджет нашего путешествия ♡</h2><p>Сколько мечтали потратить и сколько получилось на самом деле</p></div><span class="chip">₽ · план / факт</span></div>
+ <div class="budget-wrap">
+  <div class="budget-toolbar"><label class="budget-field">Общий бюджет всей поездки, ₽<input id="budget-total" type="number" min="0" step="1" placeholder="Например, 120000" style="width:215px"></label><div class="budget-controls"><button type="button" class="budget-btn secondary" id="budget-export">↓ Скачать расходы JSON</button><label class="budget-btn secondary" style="cursor:pointer">↑ Восстановить JSON<input type="file" id="budget-import" accept="application/json,.json" hidden></label></div></div>
+  <div class="family-sync"><div><strong>☁ Наш семейный бюджет</strong><p class="budget-muted" id="family-status">Локальный режим · для обмена расходами подключите облако.</p></div><div class="family-sync-actions"><label class="budget-field">Email для входа<input type="email" id="family-email" placeholder="you@example.com" autocomplete="email"></label><button class="budget-btn secondary" type="button" id="family-login">Получить письмо</button><button class="budget-btn secondary" type="button" id="family-join">Войти в поездку</button><button class="budget-btn secondary" type="button" id="family-logout" hidden>Выйти</button><button class="budget-btn secondary" type="button" id="family-reload">↻ Обновить</button></div><p class="budget-muted">Войти в одну поездку нужно с обоих телефонов, используя отдельные email и общий код приглашения. Код в адрес сайта не добавляйте. Содержимое бюджета доступно только вошедшим участникам. Дневник и фотографии пока локальные.</p></div>
+  <div class="budget-summary"><div class="budget-stat"><small>Запланировано по статьям</small><strong id="budget-planned">—</strong></div><div class="budget-stat"><small>Потрачено всего</small><strong id="budget-spent">—</strong></div><div class="budget-stat" id="budget-left-card"><small>Осталось из общего бюджета</small><strong id="budget-left">—</strong></div><div class="budget-stat"><small>Разница: план − факт</small><strong id="budget-diff">—</strong></div></div>
+  <div class="budget-bar" aria-hidden="true"><div id="budget-progress" class="budget-bar-fill"></div></div><div class="budget-muted" id="budget-progress-label">Укажите общий бюджет, чтобы видеть оставшуюся сумму.</div>
+  <div class="budget-toolbar"><label class="budget-field">Посмотреть расходы по маршруту / городу<select id="budget-scope" style="min-width:260px"></select></label><div class="budget-muted" id="budget-scope-summary"></div></div>
+  <div class="budget-split"><div class="budget-pane"><h3>✎ Что планировали</h3><p class="budget-muted">Плановые суммы можно менять. Незаполненные категории считаются как 0 ₽.</p><div id="budget-plan-lines"></div><div class="budget-actions"><button class="budget-btn secondary" id="budget-add-plan" type="button">＋ Добавить категорию</button></div></div>
+   <div class="budget-pane"><h3>♡ Что потратили</h3><form id="budget-expense-form" class="budget-form"><label class="budget-field">Дата<input id="budget-date" type="date" required></label><label class="budget-field">Категория<select id="budget-category"></select></label><label class="budget-field">Сумма, ₽<input id="budget-amount" type="number" min="0.01" step="0.01" required placeholder="850"></label><label class="budget-field">На что потратили<input id="budget-note" maxlength="160" placeholder="Заправка по дороге"></label><button class="budget-btn" type="submit">＋ Записать трату</button></form><div id="budget-expenses" class="budget-list" style="margin-top:12px"></div></div></div>
+  <h3 style="font:600 20px 'Playfair Display',serif;margin:22px 0 10px">По трём отрезкам и обратной дороге</h3><div id="stage-ledger" class="stage-ledger"></div>
+  <h3 style="font:600 20px 'Playfair Display',serif;margin:22px 0 10px">По всем этапам и городам</h3><div id="budget-breakdown" class="budget-breakdown"></div>
+  <p class="budget-hint">♡ До подключения облака бюджет сохраняется на этом устройстве. После входа в семейную поездку изменения синхронизируются. Регулярно скачивайте резервную копию JSON. Бюджеты Грузии и Турции пока не заданы; общую сумму путешествия вы вводите сами.</p>
+ </div>
+</section>
+  <section id="cities">
+    <div class="cities-head"><h2>Города нашей истории ♡</h2><span>Каждая остановка — воспоминание</span></div>
+    <div class="city-grid" id="city-grid"></div>
+  </section>
+  <section id="memories" style="margin-top:30px">
+    <div class="section-head"><div><h2>Место для воспоминаний</h2><p>Фотографии, смешные истории и моменты, к которым захочется вернуться</p></div></div>
+    <div style="background:#fffaf1;border:1px solid var(--line);border-radius:15px;padding:22px;display:flex;align-items:center;gap:17px">
+      <div style="font-size:28px">📷</div><div style="flex:1"><strong style="font:600 18px 'Playfair Display',serif">Здесь начнётся ваш дневник</strong><div style="font-size:12px;line-height:1.6;color:var(--muted);margin-top:5px">В этой демоверсии можно изучать карту и переключать остановки. Позже сюда можно добавить загрузку фотографий, даты, личные заметки и впечатления.</div></div><span style="font-size:11px;color:var(--rust);white-space:nowrap">скоро ♡</span>
+    </div>
+  </section>
+</main>
+<footer><strong>Лиана ♥ Илья</strong><br><span>Одна дорога. Два сердца. Целая история.</span></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const cities=[
+{id:'nn',name:'Нижний Новгород',short:'Нижний Новгород',coords:[56.2965,43.9361],km:'Старт',desc:'Город, откуда начинается наше большое приключение.',photo:'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=700&q=80',note:'Собираем вещи, проверяем маршрут и отправляемся навстречу приключениям.'},
+{id:'moscow',name:'Москва',coords:[55.7558,37.6173],km:'≈ 450 км',desc:'День 1: выезд утром, прогулка вечером и ночёвка на юго-востоке Москвы.',photo:'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=700&q=80',note:'Транзитная остановка по пути на юг.'},
+{id:'rostov',name:'Ростов-на-Дону',coords:[47.2357,39.7015],km:'≈ 1 100 км',desc:'День 2: длинный переезд по М-4 «Дон», только транзитная ночёвка у трассы.',photo:'https://images.unsplash.com/photo-1506377585622-bedcbb027afc?auto=format&fit=crop&w=700&q=80',note:'Можно запланировать отдых, поесть и набраться сил перед следующим этапом.'},
+{id:'vladikavkaz',name:'Владикавказ',coords:[43.0246,44.6818],km:'≈ 700 км',desc:'День 3: примерно 9 часов от Ростова-на-Дону до Кавказа.',photo:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=700&q=80',note:'Последняя остановка в России перед дорогой через Грузию.'},
+{id:'tbilisi',name:'Тбилиси',coords:[41.7151,44.8271],km:'Грузия',desc:'Балконы старого города, узкие улочки и грузинское гостеприимство.',photo:'https://images.unsplash.com/photo-1565008576549-57569a49371d?auto=format&fit=crop&w=700&q=80',note:'Точка на пути через Грузию. Здесь можно отдохнуть и сохранить первые впечатления от другой страны.'},
+{id:'hopa',name:'Хопа',coords:[41.405,41.433],km:'После границы',desc:'Запасная ночёвка, если граница задержит или сил уже нет.',photo:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=700&q=80',note:'Если после Сарпи уже поздно — остаёмся здесь и продолжаем путь утром.'},
+{id:'trabzon',name:'Трабзон',coords:[41.0027,39.7168],km:'≈ 168 км от Хопы',desc:'Более длинный переезд после границы или первая остановка утром.',photo:'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=700&q=80',note:'Остановиться у моря или продолжить дорогу в сторону Самсуна.'},
+{id:'samsun',name:'Самсун',coords:[41.2867,36.3300],km:'≈ 492 км от Хопы',desc:'Дальняя остановка на следующий день при хорошем самочувствии.',photo:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=700&q=80',note:'Выбираем только если после отдыха есть силы на длинный переезд.'},
+{id:'istanbul',name:'Стамбул',coords:[41.0082,28.9784],km:'Финиш ♡',desc:'Босфор, паромы, закаты и наша большая глава у моря.',photo:'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=700&q=80',note:'Мы добрались! Время гулять, смотреть на Босфор и создавать воспоминания.'}
+];
+const TURKEY_CHOICE_KEY='doroga-vdvoem-turkey-night-v1';
+function setTurkeyNight(choice){
+ const allowed=['hopa','trabzon','undecided'];if(!allowed.includes(choice))choice='undecided';
+ try{localStorage.setItem(TURKEY_CHOICE_KEY,choice)}catch{}
+ document.querySelectorAll('.turkey-choice-btn').forEach(b=>{const chosen=b.dataset.choice===choice;b.setAttribute('aria-pressed',String(chosen));b.style.borderColor=chosen?'#b76c4b':'#e5d7c4';b.style.background=chosen?'#f0e0cc':'#f7f0e5'});
+ const messages={hopa:'Выбрано: Хопа — отдых сразу после границы. На следующий день решим, остановиться в Трабзоне или проехать до Самсуна.',trabzon:'Выбрано: Трабзон — только если по времени и самочувствию комфортно ехать дальше.',undecided:'Пока не решили. Хопа и Трабзон остаются равноправными вариантами.'};
+ document.getElementById('turkey-choice-status').textContent=messages[choice];
+}
+document.querySelectorAll('.turkey-choice-btn').forEach(b=>b.addEventListener('click',()=>setTurkeyNight(b.dataset.choice)));
+let savedTurkeyChoice='undecided';try{savedTurkeyChoice=localStorage.getItem(TURKEY_CHOICE_KEY)||'undecided'}catch{}
+setTurkeyNight(savedTurkeyChoice);
+const map=L.map('map',{scrollWheelZoom:true,zoomControl:false}).setView([46.8,39.3],4);
+// Esri WorldTopoMap does not require a personal key for this non-commercial travel journal.
+// OpenStreetMap remains the geographical data source for the route POIs, not the tile host.
+const basemaps = [
+ {url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+  options:{maxZoom:18,attribution:'Tiles &copy; Esri and contributors'}},
+ {url:'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+  options:{maxZoom:18,subdomains:'abc',attribution:'&copy; OpenStreetMap contributors, HOT style'}}
+];
+let baseIndex=0, tileFailures=0, baseLayer;
+function mountBasemap(index){
+ if(baseLayer) map.removeLayer(baseLayer);
+ baseIndex=index;tileFailures=0;
+ baseLayer=L.tileLayer(basemaps[index].url,{...basemaps[index].options,keepBuffer:2,crossOrigin:true}).addTo(map);
+ baseLayer.on('tileerror',()=>{
+  tileFailures++;
+  if(tileFailures>=3 && baseIndex+1<basemaps.length)mountBasemap(baseIndex+1);
+  else if(tileFailures>=3 && baseIndex===basemaps.length-1){
+   document.getElementById('map-status').hidden=false;
+  }
+ });
+ baseLayer.on('tileload',()=>{document.getElementById('map-status').hidden=true});
+}
+mountBasemap(0);
+L.control.zoom({position:'bottomleft'}).addTo(map);
+// Three schematic sections, not turn-by-turn driving navigation.
+const stageRoutePoints=[
+ [[56.2965,43.9361],[55.7558,37.6173],[53.8,38.3],[51.5,39.2],[47.2357,39.7015],[44.3,41.1],[43.0246,44.6818]],
+ [[43.0246,44.6818],[42.7,44.62],[42.3,44.55],[41.7151,44.8271],[41.64,42.99],[41.64,41.64],[41.54,41.55]],
+ [[41.54,41.55],[41.405,41.433],[41.02,40.52],[41.0027,39.7168],[41.2867,36.3300],[40.73,31.60],[40.93,29.13],[41.0082,28.9784]]
+];
+const stageColors=['#b76c4b','#788560','#587e95'];
+const routeLine=L.featureGroup(stageRoutePoints.map((points,i)=>L.polyline(points,{color:stageColors[i],weight:5,opacity:.92,dashArray:i===1?'8 6':null}).addTo(map)));
+const cityLayer=L.layerGroup().addTo(map),stayLayer=L.layerGroup().addTo(map),fuelLayer=L.layerGroup().addTo(map);
+function markerIcon(n){return L.divIcon({className:'',html:`<div style="width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:#59483a;border:2px solid #fff8ec;box-shadow:0 3px 9px #33291e55;display:grid;place-items:center;color:white;font:700 12px 'DM Sans'"><span style="transform:rotate(45deg)">${n}</span></div>`,iconSize:[30,30],iconAnchor:[15,28]})}
+const markerById={};
+cities.forEach((c,i)=>{
+ const marker=L.marker(c.coords,{icon:markerIcon(i+1)}).addTo(cityLayer);
+ marker.bindPopup(`<div class="popup-title">${c.name}</div><div style="font-size:12px;color:#817568;margin:4px 0 8px">${c.desc}</div><button class="popup-link" onclick="selectCity('${c.id}')">Открыть главу →</button>`);
+ marker.on('click',()=>highlight(c.id));markerById[c.id]=marker;
+});
+/* Demo-only illustrative service markers: placeholders, not verified businesses */
+const stays=[{coords:[55.6854,37.8563],name:'Ночёвка: Жулебино / Котельники',city:'День 1 · поисковый район, квартира рядом с метро · до 5 000 ₽'},{coords:[47.2705,39.867],name:'Ночёвка: Аксай у М-4',city:'День 2 · транзит, квартира либо придорожный отель · около 4 000 ₽'},{coords:[43.0246,44.6818],name:'Владикавказ — ночёвка уточняется',city:'День 3 · перед границей'},{coords:[41.75,44.75],name:'Остановка в Тбилиси',city:'Грузия'},{coords:[41.405,41.433],name:'Хопа · запасная ночёвка',city:'Если поздно после Сарпи или Илья устал'},{coords:[41.0027,39.7168],name:'Трабзон · вариант ночёвки',city:'Если граница пройдена достаточно рано'}];
+stays.forEach(s=>L.circleMarker(s.coords,{radius:7,color:'#fffaf1',weight:2,fillColor:'#8c7ca4',fillOpacity:1}).bindPopup(`<b>⌂ ${s.name}</b><br><small>${s.city}</small><br><small>Примерная отметка — выбрать место отдельно</small>`).addTo(stayLayer));
+const fuels=[{coords:[55.7,39.2],name:'Этап 1 · бензин ≈ 36 л / 2 500 ₽'},{coords:[51.1,39.6],name:'Этап 2 · бензин ≈ 88 л / 6 250 ₽'},{coords:[47.1,39.8],name:'Этап 2 · запас топлива'},{coords:[43.2,44.6],name:'Этап 3 · бензин ≈ 56 л / 4 000 ₽'},{coords:[41.8,44.7],name:'Заправка — примерная зона'}];
+fuels.forEach(s=>L.circleMarker(s.coords,{radius:5,color:'#fffaf1',weight:2,fillColor:'#7d8b5d',fillOpacity:1}).bindPopup(`<b>⛽ ${s.name}</b><br><small>Плановая зона заправки, не адрес действующей АЗС</small>`).addTo(fuelLayer));
+function selectCity(id){const c=cities.find(x=>x.id===id);if(!c)return;highlight(id);openChapter(id);}
+window.selectCity=selectCity;
+function highlight(id){document.querySelectorAll('.route-stop').forEach(el=>el.classList.toggle('selected',el.dataset.id===id));document.querySelectorAll('.city-card').forEach(el=>el.classList.toggle('active',el.dataset.id===id));}
+const list=document.getElementById('route-list'),grid=document.getElementById('city-grid');
+cities.forEach((c,i)=>{
+ const item=document.createElement('div');item.className='route-stop';item.dataset.id=c.id;item.innerHTML=`<div class="num">${i+1}</div><div><div class="stop-name">${c.name}</div><div class="stop-desc">${c.km==='Старт'?'Начало путешествия':c.km==='Финиш ♡'?'Наша цель':c.id==='tbilisi'?'Путь через Грузию':c.id==='moscow'?'День 1 · ночёвка':c.id==='rostov'?'День 2 · ночёвка':c.id==='vladikavkaz'?'День 3 · Кавказ':'Остановка маршрута'}</div></div><div class="stop-km">${c.km}</div>`;item.onclick=()=>selectCity(c.id);list.appendChild(item);
+ const card=document.createElement('article');card.className='city-card';card.dataset.id=c.id;card.innerHTML=`<div class="city-photo"><img loading="lazy" src="${c.photo}" alt="Иллюстрация: ${c.name}" onerror="this.style.display='none'"><span class="city-no">${i+1}</span></div><div class="city-info"><h3>${c.name}</h3><p>${c.desc}</p><div class="city-link"><span>Открыть главу</span><span>↗</span></div></div>`;card.onclick=()=>selectCity(c.id);grid.appendChild(card);
+});
+document.getElementById('toggle-cities').onclick=function(){if(map.hasLayer(cityLayer)){map.removeLayer(cityLayer);this.classList.remove('active')}else{map.addLayer(cityLayer);this.classList.add('active')}};
+document.getElementById('toggle-stays').onclick=function(){if(map.hasLayer(stayLayer)){map.removeLayer(stayLayer);this.classList.remove('active')}else{map.addLayer(stayLayer);this.classList.add('active')}};
+document.getElementById('toggle-fuel').onclick=function(){if(map.hasLayer(fuelLayer)){map.removeLayer(fuelLayer);this.classList.remove('active')}else{map.addLayer(fuelLayer);this.classList.add('active')}};
+document.getElementById('fit-route').onclick=()=>map.fitBounds(routeLine.getBounds(),{padding:[35,35]});
+map.fitBounds(routeLine.getBounds(),{padding:[30,30]});
+</script>
+<div id="chapter-overlay" class="chapter-overlay" hidden><div class="chapter-modal" role="dialog" aria-modal="true" aria-labelledby="chapter-title"><button type="button" class="chapter-close" id="chapter-close" aria-label="Закрыть">×</button><div id="chapter-inner"></div></div></div>
+<div id="entry-overlay" class="chapter-overlay" hidden><div class="chapter-modal entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-title"><button type="button" class="chapter-close" id="entry-close" aria-label="Закрыть">×</button><form id="entry-form" class="entry-form"><h2 id="entry-title">Новая страница дневника ♡</h2><label>Дата<input id="entry-date" type="date" required></label><label>Город<select id="entry-city"></select></label><label>Название истории<input id="entry-name" maxlength="90" placeholder="Закат, который запомним..." required></label><label>Наши впечатления<textarea id="entry-text" maxlength="5000" placeholder="Что особенно хочется сохранить в памяти?"></textarea></label><label>Фотография<input type="file" id="entry-photo" accept="image/*"></label><img id="entry-preview" class="entry-preview" alt="Предпросмотр" hidden><span class="fineprint">Фото будет уменьшено и сохранено только в текущем браузере. Дневник не синхронизируется между устройствами. Скачивайте архив JSON для резервной копии.</span><div class="entry-tools"><button type="button" id="entry-delete" class="delete-btn" hidden>Удалить запись</button><button type="submit" class="journal-btn">Сохранить воспоминание ♡</button></div></form></div></div>
+<script>
+// City notes are suggestions, not verified hotel/restaurant listings.
+const chapterGuides={
+ nn:{road:'Перед выездом проверьте документы, шины, тормоза и техническое состояние Chevrolet Cruze. Сохраните офлайн-карты.',sights:['Набережная Федоровского','Нижегородский кремль','Чкаловская лестница'],food:'Перед стартом — неспешный завтрак в любимом кафе.',stay:'Ночёвка дома перед ранним выездом.',backup:'При необходимости — гостиница в центре города.'},
+ moscow:{road:'По вашему плану: Нижний Новгород → Москва, М-7, около 450 км, 6 часов; бензин около 36 л / 2 500 ₽. Учитывайте пробки на въезде, Московскую кольцевую дорогу и платные участки. Время пути сильно зависит от часа выезда.',sights:['Красная площадь','Парк Зарядье','Вечерняя прогулка по набережной'],food:'По приезде оставить Chevrolet Cruze у квартиры, прогуляться в центре и вернуться на метро. Ужин — где удобно по дороге или возле метро.',stay:'Квартира рядом с метро «Жулебино» (юго-восток Москвы): до 5 000 ₽, парковка обязательна. Это район поиска, не бронь.' ,backup:'Котельники рядом с метро; проверить парковку, время заезда и удобство выезда на МКАД → М-4.'},
+ rostov:{road:'По вашему плану: Москва → Ростов-на-Дону, М-4 «Дон», около 1 100 км и 14 часов; бензин около 88 л / 6 250 ₽; платная дорога около 3 500 ₽. На М-4 могут быть платные участки и сезонные заторы. Сделайте остановку на отдых до следующего длинного переезда.',sights:['Транзитная остановка — без экскурсионной программы'],food:'Без специального заезда в Ростов: ужин у М-4 или доставка еды в квартиру, затем сон и ранний выезд.',stay:'Транзитная квартира в Аксае близ М-4, с парковкой и поздним заселением; ориентир около 4 000 ₽, без прогулок.' ,backup:'Придорожный отель в Аксае у М-4, если квартира не найдётся или приедете поздно.'},
+ vladikavkaz:{road:'По вашему плану: Ростов-на-Дону → Владикавказ, М-4 / E50, около 700 км и 9 часов; бензин около 56 л / 4 000 ₽; платные участки около 450 ₽. Перед границей уточните обстановку на Военно-Грузинской дороге и КПП Верхний Ларс. Проезд может зависеть от погоды.',sights:['Проспект Мира','Набережная Терека','Виды на Кавказские горы'],food:'Осетинские пироги и чай.',stay:'Отель во Владикавказе с парковкой.',backup:'Гостевой дом в пригороде; бронировать после проверки доступности.'},
+ tbilisi:{road:'Горная дорога через Казбеги требует внимательности. Проверьте документы на автомобиль, страховку и правила въезда в Грузию.',sights:['Старый Тбилиси','Мост Мира','Крепость Нарикала'],food:'Хинкали, хачапури и грузинский лимонад.',stay:'Отель или апартаменты с парковкой в Тбилиси.',backup:'Жильё на окраине с удобным выездом на трассу.'},
+ hopa:{road:'От КПП Сарп до Хопы короткий участок дороги. Если границу прошли поздно, не заставляйте уставшего водителя ехать до Трабзона ночью. Проверяйте парковку и позднее заселение.',sights:['Спокойный вечер без обязательных прогулок'],food:'Ужин рядом с жильём и отдых.',stay:'Небольшой отель или апартаменты в Хопе с парковкой и поздним заселением.',backup:'Гостиница по дороге в сторону Ризе, если в Хопе нет вариантов.'},
+ trabzon:{road:'Примерно 168 км от Хопы по черноморскому побережью. После пограничной очереди учитывайте реальную усталость, темноту и время заселения.',sights:['Набережная Трабзона','Вид на Чёрное море'],food:'Ужин или завтрак в городе.',stay:'Апартаменты или отель с парковкой, если доехали без усталости.',backup:'Ночёвка в Хопе и выезд к Трабзону утром.'},
+ samsun:{road:'От Хопы порядка 492 км и около 7 часов чистого движения. Реально закладывайте больше времени на еду, отдых и дорожную ситуацию.',sights:['Прогулка у Чёрного моря — если останутся силы'],food:'Остановка на обед по дороге и ужин после заселения.',stay:'Транзитный отель в Самсуне с парковкой.',backup:'Остановиться раньше, например в районе Трабзона или Орду.'},
+ istanbul:{road:'Пересечение границы Турции, дорожные платежи и интенсивное городское движение требуют отдельной подготовки. Проверьте правила для автомобиля.',sights:['Айя-София (снаружи и по актуальным правилам посещения)','Прогулка у Босфора','Галатская башня'],food:'Турецкий завтрак, симит и чай с видом на пролив.',stay:'Отель с подтверждённой парковкой и удобным транспортом до центра.',backup:'Апартаменты на азиатской стороне или вне исторического центра с парковкой.'}
+};
+const chapterOverlay=document.getElementById('chapter-overlay');
+const entryOverlay=document.getElementById('entry-overlay');
+function escapeText(s){return String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function openChapter(id){
+ const c=cities.find(x=>x.id===id);if(!c)return;
+ const g=chapterGuides[id];
+ document.getElementById('chapter-inner').innerHTML=`<div class="chapter-cover" style="background-image:url('${c.photo}')"><h2 id="chapter-title">${escapeText(c.name)} ♡</h2></div><div class="chapter-content"><div class="eyebrow">Глава ${cities.indexOf(c)+1} из ${cities.length} · ${escapeText(c.km)}</div><p>${escapeText(c.note)}</p><div class="chapter-two"><section><h3>⌂ Где переночевать</h3><p><strong>Основной вариант:</strong> ${escapeText(g.stay)}</p><p><strong>Запасной вариант:</strong> ${escapeText(g.backup)}</p><p class="chapter-hint">Это ориентиры для планирования, а не подтверждённые бронирования.</p></section><section><h3>✧ Что посмотреть</h3><ul>${g.sights.map(x=>`<li>${escapeText(x)}</li>`).join('')}</ul><h3>☕ Где поесть</h3><p>${escapeText(g.food)}</p></section></div><h3>🚗 Особенности дороги</h3><div class="chapter-note"><p>${escapeText(g.road)}</p></div><div class="chapter-footer"><span class="chapter-hint">Добавьте собственные адреса и находки в дневник.</span><button class="journal-btn" onclick="openEntry(null,'${id}')">＋ Запись об этом городе</button><button class="journal-btn secondary" onclick="openBudgetForCity('${id}')">₽ Бюджет города</button></div></div>`;
+ chapterOverlay.hidden=false;document.body.style.overflow='hidden';document.getElementById('chapter-close').focus();
+}
+function closeOverlay(){chapterOverlay.hidden=true;entryOverlay.hidden=true;document.body.style.overflow='';}
+document.getElementById('chapter-close').onclick=closeOverlay;
+document.getElementById('entry-close').onclick=closeOverlay;
+[chapterOverlay,entryOverlay].forEach(x=>x.addEventListener('mousedown',e=>{if(e.target===x)closeOverlay()}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOverlay()});
+const JOURNAL_KEY='doroga-vdvoem-journal-v1';
+function loadEntries(){try{const a=JSON.parse(localStorage.getItem(JOURNAL_KEY)||'[]');return Array.isArray(a)?a:[]}catch{return []}}
+let entries=loadEntries(),editingId=null,storedPhoto='';
+const citySelect=document.getElementById('entry-city');
+citySelect.innerHTML=cities.map(c=>`<option value="${c.id}">${escapeText(c.name)}</option>`).join('');
+function renderJournal(){
+ const target=document.getElementById('journal-grid');
+ if(!entries.length){target.innerHTML='<div class="journal-empty">♡ Пока здесь чистые страницы. Добавьте первый кадр и первую историю вашей дороги.</div>';return}
+ target.innerHTML=[...entries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<article class="journal-entry" tabindex="0" data-entry="${escapeText(e.id)}">${e.photo?`<img src="${e.photo}" alt="Фото воспоминания" loading="lazy">`:''}<div class="journal-entry-body"><span class="journal-date">${escapeText(e.date)} · ${escapeText(cities.find(c=>c.id===e.city)?.name||'В пути')}</span><h3>${escapeText(e.title)}</h3><p>${escapeText(e.text).slice(0,180)}${e.text.length>180?'…':''}</p></div></article>`).join('');
+ target.querySelectorAll('[data-entry]').forEach(el=>{const fn=()=>openEntry(el.dataset.entry);el.onclick=fn;el.onkeydown=e=>{if(e.key==='Enter')fn()}});
+}
+function openEntry(id=null,city='nn'){
+ closeOverlay();editingId=id;const e=entries.find(x=>x.id===id);
+ document.getElementById('entry-title').textContent=e?'Наша история ♡':'Новая страница дневника ♡';
+ document.getElementById('entry-date').value=e?.date||new Date().toLocaleDateString('en-CA');
+ citySelect.value=e?.city||city;
+ document.getElementById('entry-name').value=e?.title||'';
+ document.getElementById('entry-text').value=e?.text||'';
+ document.getElementById('entry-photo').value='';storedPhoto=e?.photo||'';
+ const prev=document.getElementById('entry-preview');prev.src=storedPhoto;prev.hidden=!storedPhoto;
+ document.getElementById('entry-delete').hidden=!e;
+ entryOverlay.hidden=false;document.body.style.overflow='hidden';
+}
+window.openEntry=openEntry;
+document.getElementById('new-entry').onclick=()=>openEntry();
+function compressImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const scale=Math.min(1,1100/img.width,1100/img.height),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.72))};img.src=reader.result};reader.readAsDataURL(file)})}
+document.getElementById('entry-photo').onchange=async function(){const file=this.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){alert('Выберите изображение');return}try{storedPhoto=await compressImage(file);const preview=document.getElementById('entry-preview');preview.src=storedPhoto;preview.hidden=false}catch{alert('Не получилось прочитать фотографию')}};
+document.getElementById('entry-form').onsubmit=e=>{
+ e.preventDefault();const title=document.getElementById('entry-name').value.trim();if(!title)return;
+ const item={id:editingId||String(Date.now())+'-'+Math.random().toString(36).slice(2,8),date:document.getElementById('entry-date').value,city:citySelect.value,title,text:document.getElementById('entry-text').value.trim(),photo:storedPhoto};
+ const next=entries.filter(x=>x.id!==item.id).concat(item);
+ try{localStorage.setItem(JOURNAL_KEY,JSON.stringify(next));entries=next;renderJournal();closeOverlay()}catch{alert('Недостаточно места в хранилище браузера. Экспортируйте архив и попробуйте фото меньшего размера.')}};
+document.getElementById('entry-delete').onclick=()=>{if(!editingId||!confirm('Удалить эту запись?'))return;entries=entries.filter(x=>x.id!==editingId);localStorage.setItem(JOURNAL_KEY,JSON.stringify(entries));renderJournal();closeOverlay()};
+document.getElementById('export-entries').onclick=()=>{const data=JSON.stringify({app:'Дорога вдвоём',version:1,exported:new Date().toISOString(),entries},null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='doroga-vdvoem-dnevnik.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+document.getElementById('import-entries').onchange=async function(){const file=this.files?.[0];if(!file)return;try{if(file.size>15*1024*1024)throw Error('Файл больше 15 МБ');const data=JSON.parse(await file.text());if(!Array.isArray(data.entries))throw Error('Неверный формат');if(!confirm('Импорт заменит текущие записи. Продолжить?'))return;const next=data.entries.map(x=>({id:String(x.id||Date.now()),date:String(x.date||''),city:String(x.city||'nn'),title:String(x.title||''),text:String(x.text||''),photo:typeof x.photo==='string'&&x.photo.startsWith('data:image/')?x.photo:''}));localStorage.setItem(JOURNAL_KEY,JSON.stringify(next));entries=next;renderJournal();alert('Дневник восстановлен')}catch(err){alert('Не удалось импортировать архив: '+err.message)}finally{this.value=''}};
+renderJournal();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+// Simple offline-first ledger. Scope separates road segments from spending at a city.
+(function(){
+const KEY='doroga-vdvoem-budget-v1';
+const scopes=[
+ ['leg_nn_moscow','🚗 Нижний Новгород → Москва'],['city_moscow','🏙 Москва'],
+ ['leg_moscow_rostov','🚗 Москва → Ростов-на-Дону'],['city_rostov','🏙 Ростов-на-Дону'],
+ ['leg_rostov_vlad','🚗 Ростов-на-Дону → Владикавказ'],['city_vlad','🏙 Владикавказ'],
+ ['leg_vlad_tbilisi','🚗 Владикавказ → Тбилиси'],['city_tbilisi','🏙 Тбилиси'],
+ ['leg_tbilisi_istanbul','🚗 Грузия → Стамбул'],['city_hopa','🏙 Хопа · ночёвка по ситуации'],['leg_hopa_trabzon','🚗 Хопа → Трабзон'],['city_trabzon','🏙 Трабзон'],['leg_trabzon_samsun','🚗 Трабзон → Самсун'],['city_samsun','🏙 Самсун'],['city_istanbul','🏙 Стамбул'],
+ ['border_georgia','🛂 Граница Россия → Грузия'],['border_turkey','🛂 Граница Грузия → Турция'],
+ ['turkey_alternatives','🇹🇷 Другие остановки по Турции'],['return_road','↩ Обратная дорога домой']
+];
+const categories=['Бензин','Еда в дороге','Еда и кафе','Ночлег','Прогулки и развлечения','Платные дороги','Парковка','Покупки','Другое'];
+const defaults={
+ leg_nn_moscow:{'Бензин':2500},city_moscow:{'Ночлег':5000},
+ leg_moscow_rostov:{'Бензин':6250,'Платные дороги':3500},city_rostov:{'Ночлег':4000},
+ leg_rostov_vlad:{'Бензин':4000,'Платные дороги':450}
+};
+const stageGroups=[['Россия до Владикавказа',['leg_nn_moscow','city_moscow','leg_moscow_rostov','city_rostov','leg_rostov_vlad','city_vlad']],['Грузия и две границы',['border_georgia','leg_vlad_tbilisi','city_tbilisi','border_turkey']],['Турция → Стамбул',['leg_tbilisi_istanbul','city_hopa','leg_hopa_trabzon','city_trabzon','leg_trabzon_samsun','city_samsun','turkey_alternatives','city_istanbul']],['Обратная дорога',['return_road']]];
+const fmt=n=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(n)+' ₽';
+const $=id=>document.getElementById(id);
+const safe=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fresh(){return {total:null,plans:structuredClone(defaults),expenses:[]}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(!d||typeof d!=='object')return fresh();return {total:Number.isFinite(+d.total)&&d.total!==null&&+d.total>0?+d.total:null,plans:d.plans&&typeof d.plans==='object'?d.plans:structuredClone(defaults),expenses:Array.isArray(d.expenses)?d.expenses:[]}}catch{return fresh()}}
+let data=load();let scope=new URLSearchParams(location.search).get('scope')||'leg_nn_moscow';
+const validAmt=n=>Number.isFinite(n)&&n>=0&&n<=1e12;
+function sumPlanned(id){return Object.values(data.plans[id]||{}).reduce((a,v)=>a+(validAmt(Number(v))?Number(v):0),0)}
+function sumSpent(id){return data.expenses.reduce((a,e)=>a+((!id||e.scope===id)&&validAmt(+e.amount)?+e.amount:0),0)}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));if(familyTrip)queueCloudSave();return true}catch{alert('Не удалось сохранить данные в этом браузере. Экспортируйте резервную копию.');return false}}
+function render(){
+ const planned=scopes.reduce((a,[id])=>a+sumPlanned(id),0),spent=sumSpent(),remaining=data.total===null?null:data.total-spent;
+ $('budget-planned').textContent=fmt(planned);$('budget-spent').textContent=fmt(spent);$('budget-left').textContent=remaining===null?'Укажите бюджет':fmt(remaining);$('budget-diff').textContent=fmt(planned-spent);
+ $('budget-left-card').classList.toggle('negative',remaining!==null&&remaining<0);
+ $('budget-progress').style.width=(data.total?Math.min(100,spent/data.total*100):0)+'%';$('budget-progress').classList.toggle('over',remaining!==null&&remaining<0);
+ $('budget-progress-label').textContent=data.total===null?'Укажите общий бюджет всей поездки, чтобы увидеть остаток.':`Использовано ${Math.round(spent/data.total*100)}% общего бюджета · ${remaining<0?'Превышение':'Осталось'} ${fmt(Math.abs(remaining))}`;
+ $('budget-scope-summary').textContent=`План: ${fmt(sumPlanned(scope))} · Факт: ${fmt(sumSpent(scope))} · Осталось по плану: ${fmt(sumPlanned(scope)-sumSpent(scope))}`;
+ const plan=data.plans[scope]||{};
+ $('budget-plan-lines').innerHTML=Object.entries(plan).map(([name,value])=>`<div class="budget-line"><span>${safe(name)}</span><div style="display:flex;align-items:center;gap:6px"><input type="number" min="0" step="0.01" data-plan="${safe(name)}" value="${validAmt(+value)?+value:0}" aria-label="План: ${safe(name)}"><button type="button" title="Убрать категорию" data-remove="${safe(name)}">×</button></div></div>`).join('')||'<div class="budget-empty">Пока нет плановых расходов. Добавьте категорию.</div>';
+ $('budget-plan-lines').querySelectorAll('[data-plan]').forEach(el=>el.addEventListener('change',()=>{const n=Number(el.value);if(!validAmt(n)){alert('Укажите положительную сумму.');render();return}data.plans[scope]??={};data.plans[scope][el.dataset.plan]=n;persist();render()}));
+ $('budget-plan-lines').querySelectorAll('[data-remove]').forEach(el=>el.addEventListener('click',()=>{delete data.plans[scope][el.dataset.remove];persist();render()}));
+ const tx=data.expenses.filter(e=>e.scope===scope).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ $('budget-expenses').innerHTML=tx.length?tx.map(e=>`<div class="budget-line"><div><strong>${safe(e.category)}</strong><div class="budget-muted">${safe(e.date)}${e.note?' · '+safe(e.note):''}</div></div><div style="display:flex;align-items:center;gap:8px"><strong>${fmt(+e.amount)}</strong><button type="button" data-delete="${safe(e.id)}" title="Удалить трату">×</button></div></div>`).join(''):'<div class="budget-empty">Здесь появятся ваши реальные расходы ♡</div>';
+ $('budget-expenses').querySelectorAll('[data-delete]').forEach(el=>el.onclick=()=>{if(!confirm('Удалить эту трату?'))return;data.expenses=data.expenses.filter(e=>e.id!==el.dataset.delete);persist();render()});
+ $('stage-ledger').innerHTML=stageGroups.map(([label,ids],i)=>{const planned=ids.reduce((a,id)=>a+sumPlanned(id),0),spent=ids.reduce((a,id)=>a+sumSpent(id),0);return `<div><small>${safe(label)}</small><strong>${fmt(planned)} / ${fmt(spent)}</strong><small>План / факт · ${i===0?'ориентир 26 000 ₽ с запасом':i===3?'цель экономии ≈ 10 000 ₽ относительно поездки туда':'укажите план, когда определитесь'}</small></div>`}).join('');
+ $('budget-breakdown').innerHTML=scopes.map(([id,label])=>`<button type="button" class="budget-mini" data-scope-open="${id}" style="${scope===id?'border-color:#b76c4b':''}"><b>${safe(label)}</b><span>План ${fmt(sumPlanned(id))}<br>Факт ${fmt(sumSpent(id))}<br>Осталось ${fmt(sumPlanned(id)-sumSpent(id))}</span></button>`).join('');
+ $('budget-breakdown').querySelectorAll('[data-scope-open]').forEach(el=>el.onclick=()=>{scope=el.dataset.scopeOpen;$('budget-scope').value=scope;render();document.getElementById('budget-scope').scrollIntoView({behavior:'smooth',block:'center'})});
+}
+$('budget-scope').innerHTML=scopes.map(([id,label])=>`<option value="${id}">${safe(label)}</option>`).join('');
+$('budget-category').innerHTML=categories.map(v=>`<option value="${safe(v)}">${safe(v)}</option>`).join('');
+$('budget-total').value=data.total??'';
+$('budget-total').onchange=function(){if(this.value.trim()===''){data.total=null}else{const n=+this.value;if(!validAmt(n)||n===0){alert('Общий бюджет должен быть больше нуля.');this.value=data.total??'';return}data.total=n}persist();render()};
+$('budget-scope').onchange=e=>{scope=e.target.value;render()};
+$('budget-date').value=new Date().toLocaleDateString('en-CA');
+$('budget-expense-form').onsubmit=e=>{e.preventDefault();const amount=Number($('budget-amount').value);if(!validAmt(amount)||amount===0){alert('Введите сумму больше нуля.');return}data.expenses.push({id:String(Date.now())+'_'+Math.random().toString(36).slice(2),scope,category:$('budget-category').value,amount,date:$('budget-date').value,note:$('budget-note').value.trim()});persist();$('budget-amount').value='';$('budget-note').value='';render()};
+$('budget-add-plan').onclick=()=>{const allowed=categories.filter(c=>!(c in (data.plans[scope]||{})));const name=prompt('Название категории для плана (например, «Еда в дороге»):',allowed[0]||'Другое');if(!name)return;const clean=name.trim().slice(0,80);if(!clean)return;data.plans[scope]??={};if(clean in data.plans[scope]){alert('Такая категория уже есть.');return}data.plans[scope][clean]=0;persist();render()};
+$('budget-export').onclick=()=>{const blob=new Blob([JSON.stringify({app:'Дорога вдвоём',type:'budget',version:1,exported:new Date().toISOString(),data},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='doroga-vdvoem-budget.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)};
+$('budget-import').onchange=async function(){const f=this.files?.[0];if(!f)return;try{if(f.size>3e6)throw Error('Слишком большой файл');const file=JSON.parse(await f.text());if(file.type!=='budget'||!file.data||!Array.isArray(file.data.expenses)||typeof file.data.plans!=='object')throw Error('Это не архив бюджета');if(!confirm('Восстановление заменит текущий бюджет и все расходы. Продолжить?'))return;data={total:file.data.total,plans:file.data.plans,expenses:file.data.expenses.filter(e=>scopes.some(([id])=>e.scope===id)&&validAmt(+e.amount)).map(e=>({id:String(e.id).slice(0,80),scope:e.scope,date:String(e.date).slice(0,20),category:String(e.category).slice(0,80),note:String(e.note||'').slice(0,160),amount:+e.amount}))};$('budget-total').value=data.total??'';persist();render()}catch(err){alert('Не удалось восстановить бюджет: '+err.message)}finally{this.value=''}};
+// Cloud ledger: one trip, private membership, optimistic revision to prevent silent overwrites.
+let familyClient=null,familyTrip=null,familyRevision=0,cloudBusy=false,cloudPending=false,cloudTimer=null;
+const cloudStatus=t=>{$('family-status').textContent=t};
+const cloudCfg=window.FAMILY_SUPABASE||{};
+if(cloudCfg.url&&cloudCfg.publishableKey&&window.supabase){
+ familyClient=window.supabase.createClient(cloudCfg.url,cloudCfg.publishableKey);
+ cloudStatus('Облако настроено · войдите через email, затем в общую поездку.');
+}else cloudStatus('Облако не настроено: нужен config.js и SQL из архива. Сейчас работает локальный бюджет.');
+function cloudData(){return {total:data.total,plans:data.plans,expenses:data.expenses}}
+async function cloudPull(){
+ if(!familyClient||!familyTrip)return;
+ const {data:row,error}=await familyClient.from('family_budget').select('content,revision').eq('trip_id',familyTrip).single();
+ if(error)throw error;
+ if(row.revision===0&&Object.keys(row.content||{}).length===0){
+  if(confirm('Общий бюджет пока пуст. Перенести ваши локальные расходы в облако?')){familyRevision=0;await cloudSave();return}
+ }
+ if(row.content&&Object.keys(row.content).length){
+   data={total:row.content.total??null,plans:row.content.plans||structuredClone(defaults),expenses:Array.isArray(row.content.expenses)?row.content.expenses:[]};
+   familyRevision=row.revision;localStorage.setItem(KEY,JSON.stringify(data));$('budget-total').value=data.total??'';render();
+ }else familyRevision=row.revision;
+ cloudStatus('✓ Общий бюджет синхронизирован · версия '+familyRevision);
+}
+async function cloudSave(){
+ if(!familyTrip||!familyClient)return;
+ if(cloudBusy){cloudPending=true;return}
+ cloudBusy=true;cloudPending=false;cloudTimer=null;
+ try{
+  const {data:revision,error}=await familyClient.rpc('save_family_budget',{p_trip:familyTrip,p_revision:familyRevision,p_content:cloudData()});
+  if(error)throw error;
+  if(revision===null){cloudStatus('⚠ Конфликт изменений: кто-то записал расходы раньше.');alert('Общий бюджет изменён на другом телефоне. Скачайте локальный JSON, затем нажмите «Обновить» для получения актуальных данных. Локальные изменения не отправлены.');return}
+  familyRevision=revision;cloudStatus('✓ Сохранено для двух телефонов · версия '+revision);
+ }catch(e){cloudStatus('⚠ Облако недоступно: '+e.message+' · локальная копия сохранена');}
+ finally{cloudBusy=false;if(cloudPending){cloudPending=false;queueCloudSave()}}
+}
+function queueCloudSave(){if(!familyTrip)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSave,650)}
+$('family-login').onclick=async()=>{
+ if(!familyClient){alert('Настройте Supabase по инструкции из архива.');return}
+ const email=$('family-email').value.trim();if(!email){alert('Введите email.');return}
+ const redirectTo=location.origin+location.pathname;
+ const {error}=await familyClient.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo}});
+ if(error)alert(error.message);else alert('Проверьте почту и откройте ссылку входа на этом устройстве.');
+};
+$('family-join').onclick=async()=>{
+ if(!familyClient){alert('Не настроено подключение Supabase.');return}
+ const {data:{user}}=await familyClient.auth.getUser();if(!user){alert('Сначала войдите по ссылке из email.');return}
+ const code=prompt('Введите общий секретный код вашей поездки:');if(!code)return;
+ const {data:id,error}=await familyClient.rpc('join_family_trip',{p_code:code});
+ if(error||!id){alert('Не удалось подключиться: '+(error?.message||'неверный код'));return}
+ familyTrip=id;localStorage.setItem('family-trip-id',id);
+ try{await cloudPull()}catch(e){cloudStatus('Ошибка чтения: '+e.message)};
+ $('family-logout').hidden=false;
+};
+$('family-logout').onclick=async()=>{if(familyClient)await familyClient.auth.signOut();familyTrip=null;localStorage.removeItem('family-trip-id');$('family-logout').hidden=true;cloudStatus('Вы вышли. Данные доступны локально.');};
+$('family-reload').onclick=async()=>{try{await cloudPull()}catch(e){alert('Не удалось обновить: '+e.message)}};
+(async()=>{
+ if(!familyClient)return;
+ const {data:{user}}=await familyClient.auth.getUser();if(!user)return;
+ $('family-email').value=user.email||'';
+ const id=localStorage.getItem('family-trip-id');if(id){familyTrip=id;$('family-logout').hidden=false;try{await cloudPull()}catch(e){familyTrip=null;cloudStatus('Подключитесь к поездке снова: '+e.message)}}
+ setInterval(async()=>{if(familyTrip&&!cloudBusy&&!cloudPending&&!cloudTimer&&document.visibilityState==='visible')try{await cloudPull()}catch{}},15000);
+})();
+window.openStageBudget=(stage)=>{const targets={border:'border_georgia',turkey:'turkey_alternatives',return:'return_road'};scope=targets[stage]||'leg_nn_moscow';$('budget-scope').value=scope;render();document.getElementById('budget').scrollIntoView({behavior:'smooth'})};
+window.openBudgetForCity=(city)=>{const id='city_'+(city==='vladikavkaz'?'vlad':city);if(!scopes.some(([key])=>key===id))return;scope=id;$('budget-scope').value=id;render();closeOverlay();$('budget').scrollIntoView({behavior:'smooth'})};
+render();
+})();
+</script>
+</body>
+</html>
